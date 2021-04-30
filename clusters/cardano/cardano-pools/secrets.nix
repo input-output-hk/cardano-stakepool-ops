@@ -1,0 +1,3 @@
+{ config, ... }: {
+  secrets.encryptedRoot = ../../../encrypted;
+}

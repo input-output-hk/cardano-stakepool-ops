@@ -1,0 +1,14 @@
+secrets/
+/.direnv
+/.terraform
+/config.tf.json
+/*.plan
+*.sk
+*.pk
+*.skey
+*.vkey
+*.txbody
+*.txsigned
+*.sig
+state*
+result*
