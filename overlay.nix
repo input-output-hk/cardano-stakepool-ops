@@ -4,18 +4,20 @@ let lib = final.lib;
 in rec {
 
   postgres-entrypoint = final.callPackage ./pkgs/postgres-entrypoint.nix { };
-  postgres-init-entrypoint = final.callPackage ./pkgs/postgres-init-entrypoint.nix { };
-  postgres-backup-entrypoint = final.callPackage ./pkgs/postgres-backup-entrypoint.nix { };
-  postgres-patroni-entrypoint = final.callPackage ./pkgs/postgres-patroni-entrypoint.nix { };
+  postgres-init-entrypoint =
+    final.callPackage ./pkgs/postgres-init-entrypoint.nix { };
+  postgres-backup-entrypoint =
+    final.callPackage ./pkgs/postgres-backup-entrypoint.nix { };
+  postgres-patroni-entrypoint =
+    final.callPackage ./pkgs/postgres-patroni-entrypoint.nix { };
 
   print-env = final.callPackage ./pkgs/print-env.nix { };
   restic-backup = final.callPackage ./pkgs/restic-backup { };
   nomad-driver-nspawn = final.callPackage ./pkgs/nomad-driver-nspawn.nix { };
   devbox-entrypoint = final.callPackage ./pkgs/devbox.nix { };
 
-  nodePkgs = inputs.cardano-node.legacyPackages.${final.system};
-
-  inherit (final.nodePkgs) cardano-cli cardano-node;
+  inherit (inputs.cardano-node.legacyPackages.${final.system})
+    cardano-cli cardano-node;
 
   checkFmt = final.writeShellScriptBin "check_fmt.sh" ''
     export PATH="$PATH:${lib.makeBinPath (with final; [ git nixfmt gnugrep ])}"
@@ -89,6 +91,8 @@ in rec {
       consul-template
       direnv
       jq
+      fd
+      ripgrep
       nixfmt
       nomad
       # Causes a stack overflow when added to dev shell
@@ -107,10 +111,10 @@ in rec {
 
   # Used for caching
   devShellPath = prev.symlinkJoin {
-    paths = final.devShell.buildInputs
-      ++ [ final.nixFlakes ];
+    paths = final.devShell.buildInputs ++ [ final.nixFlakes ];
     name = "devShell";
   };
 
-  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system}) traefik patroni;
+  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
+    traefik patroni;
 }
