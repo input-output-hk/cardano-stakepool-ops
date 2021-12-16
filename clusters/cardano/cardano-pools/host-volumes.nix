@@ -6,8 +6,7 @@
       "/etc/services" = "/etc/services";
     };
 
-    host_volume = [
-    ];
+    host_volume = [ ];
   };
 
   system.activationScripts.nomad-host-volumes =

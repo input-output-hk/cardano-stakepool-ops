@@ -33,13 +33,10 @@ in {
   };
 
   nix = {
-    binaryCaches = [
-      "https://hydra.iohk.io"
-    ];
+    binaryCaches = [ "https://hydra.iohk.io" ];
 
-    binaryCachePublicKeys = [
-      "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
-    ];
+    binaryCachePublicKeys =
+      [ "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" ];
   };
 
   cluster = {
@@ -74,34 +71,32 @@ in {
           { services.nomad.client.meta.namespace = "${name}"; }
         '';
 
-      mkModules = name: defaultModules ++ [
-        "${withNamespace name}"
-      ];
-    # For each list item below which represents an auto-scaler machine(s),
-    # an autoscaling group name will be created in the form of:
-    #
-    #   client-$REGION-$INSTANCE_TYPE
-    #
-    # This works for most cases, but if there is a use case where
-    # machines of the same instance type and region need to be
-    # separated into different auto-scaling groups, this can be done by
-    # setting a string attribute of `asgSuffix` in the list items needed.
-    #
-    # If used, asgSuffix must be a string matching a regex of: ^[A-Za-z0-9]$
-    # Otherwise, nix will throw an error.
-    #
-    # asgSuffix can be used with the `withNamespace` function above to
-    # meta tag nodes in certain autoscaler groups.  The meta tagged nodes
-    # can then be used to constrain job deployments via cue definitions
-    # or new Nomad node namespace functionality in the (hopefully) near future.
-    #
-    # Autoscaling groups which utilize an asgSuffix will be named in the form:
-    #
-    #   client-$REGION-$INSTANCE_TYPE-$ASG_SUFFIX
-    #
-    # Refs:
-    # https://www.nomadproject.io/docs/job-specification/constraint#user-specified-metadata
-    # https://github.com/hashicorp/nomad/issues/9342
+      mkModules = name: defaultModules ++ [ "${withNamespace name}" ];
+      # For each list item below which represents an auto-scaler machine(s),
+      # an autoscaling group name will be created in the form of:
+      #
+      #   client-$REGION-$INSTANCE_TYPE
+      #
+      # This works for most cases, but if there is a use case where
+      # machines of the same instance type and region need to be
+      # separated into different auto-scaling groups, this can be done by
+      # setting a string attribute of `asgSuffix` in the list items needed.
+      #
+      # If used, asgSuffix must be a string matching a regex of: ^[A-Za-z0-9]$
+      # Otherwise, nix will throw an error.
+      #
+      # asgSuffix can be used with the `withNamespace` function above to
+      # meta tag nodes in certain autoscaler groups.  The meta tagged nodes
+      # can then be used to constrain job deployments via cue definitions
+      # or new Nomad node namespace functionality in the (hopefully) near future.
+      #
+      # Autoscaling groups which utilize an asgSuffix will be named in the form:
+      #
+      #   client-$REGION-$INSTANCE_TYPE-$ASG_SUFFIX
+      #
+      # Refs:
+      # https://www.nomadproject.io/docs/job-specification/constraint#user-specified-metadata
+      # https://github.com/hashicorp/nomad/issues/9342
 
     in lib.listToAttrs (lib.forEach [
       # Mainnet, 3 regions
@@ -172,7 +167,8 @@ in {
             "-${args.asgSuffix}"
           else
             throw "asgSuffix must regex match a string of ^[A-Za-z0-9]$"
-        else "";
+        else
+          "";
         asgName = "client-${attrs.region}-${
             builtins.replaceStrings [ "." ] [ "-" ] attrs.instanceType
           }${suffix}";

@@ -4,9 +4,12 @@ let lib = final.lib;
 in rec {
 
   postgres-entrypoint = final.callPackage ./pkgs/postgres-entrypoint.nix { };
-  postgres-init-entrypoint = final.callPackage ./pkgs/postgres-init-entrypoint.nix { };
-  postgres-backup-entrypoint = final.callPackage ./pkgs/postgres-backup-entrypoint.nix { };
-  postgres-patroni-entrypoint = final.callPackage ./pkgs/postgres-patroni-entrypoint.nix { };
+  postgres-init-entrypoint =
+    final.callPackage ./pkgs/postgres-init-entrypoint.nix { };
+  postgres-backup-entrypoint =
+    final.callPackage ./pkgs/postgres-backup-entrypoint.nix { };
+  postgres-patroni-entrypoint =
+    final.callPackage ./pkgs/postgres-patroni-entrypoint.nix { };
 
   print-env = final.callPackage ./pkgs/print-env.nix { };
   restic-backup = final.callPackage ./pkgs/restic-backup { };
@@ -107,10 +110,10 @@ in rec {
 
   # Used for caching
   devShellPath = prev.symlinkJoin {
-    paths = final.devShell.buildInputs
-      ++ [ final.nixFlakes ];
+    paths = final.devShell.buildInputs ++ [ final.nixFlakes ];
     name = "devShell";
   };
 
-  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system}) traefik patroni;
+  inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
+    traefik patroni;
 }

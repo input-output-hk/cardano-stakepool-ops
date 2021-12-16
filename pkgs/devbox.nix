@@ -1,5 +1,5 @@
-{ runCommand, writeShellScriptBin, symlinkJoin, consul, debugUtils
-, diffutils, gitFull, patroni, postgresql_12, remarshal, restic, vault-bin, ... }:
+{ runCommand, writeShellScriptBin, symlinkJoin, consul, debugUtils, diffutils
+, gitFull, patroni, postgresql_12, remarshal, restic, vault-bin, ... }:
 let
   entrypoint = writeShellScriptBin "entrypoint" ''
     trap 'echo "$(date -u +"%b %d, %y %H:%M:%S +0000"): Caught SIGINT -- exiting" && exit 0' INT
