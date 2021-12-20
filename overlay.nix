@@ -16,9 +16,8 @@ in rec {
   nomad-driver-nspawn = final.callPackage ./pkgs/nomad-driver-nspawn.nix { };
   devbox-entrypoint = final.callPackage ./pkgs/devbox.nix { };
 
-  nodePkgs = inputs.cardano-node.legacyPackages.${final.system};
-
-  inherit (final.nodePkgs) cardano-cli cardano-node;
+  inherit (inputs.cardano-node.legacyPackages.${final.system})
+    cardano-cli cardano-node;
 
   checkFmt = final.writeShellScriptBin "check_fmt.sh" ''
     export PATH="$PATH:${lib.makeBinPath (with final; [ git nixfmt gnugrep ])}"
@@ -92,6 +91,8 @@ in rec {
       consul-template
       direnv
       jq
+      fd
+      ripgrep
       nixfmt
       nomad
       # Causes a stack overflow when added to dev shell

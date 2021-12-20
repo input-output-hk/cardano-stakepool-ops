@@ -5,7 +5,7 @@ let
   inherit (import ./security-group-rules.nix { inherit config pkgs lib; })
     securityGroupRules;
 in {
-  imports = [ ./iam.nix ];
+  imports = [ ./iam.nix ./secrets.nix ];
 
   services.consul.policies.developer.servicePrefix."cardano" = {
     policy = "write";
@@ -28,9 +28,7 @@ in {
     };
   };
 
-  services.nomad.namespaces = {
-    cardano-pools = { description = "Cardano (testnet)"; };
-  };
+  services.nomad.namespaces = { cardano-testnet.description = "testnet"; };
 
   nix = {
     binaryCaches = [ "https://hydra.iohk.io" ];
@@ -60,7 +58,6 @@ in {
         self.inputs.ops-lib.nixosModules.zfs-runtime
         "${self.inputs.nixpkgs}/nixos/modules/profiles/headless.nix"
         "${self.inputs.nixpkgs}/nixos/modules/virtualisation/ec2-data.nix"
-        ./secrets.nix
         ./docker-auth.nix
         ./host-volumes.nix
         ./nspawn.nix
@@ -181,11 +178,8 @@ in {
         subnet = cluster.vpc.subnets.core-1;
         volumeSize = 100;
 
-        modules = [
-          (bitte + /profiles/core.nix)
-          (bitte + /profiles/bootstrapper.nix)
-          ./secrets.nix
-        ];
+        modules =
+          [ (bitte + /profiles/core.nix) (bitte + /profiles/bootstrapper.nix) ];
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
@@ -214,7 +208,7 @@ in {
         subnet = cluster.vpc.subnets.core-2;
         volumeSize = 100;
 
-        modules = [ (bitte + /profiles/core.nix) ./secrets.nix ];
+        modules = [ (bitte + /profiles/core.nix) ];
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
@@ -227,7 +221,7 @@ in {
         subnet = cluster.vpc.subnets.core-3;
         volumeSize = 100;
 
-        modules = [ (bitte + /profiles/core.nix) ./secrets.nix ];
+        modules = [ (bitte + /profiles/core.nix) ];
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
@@ -266,6 +260,42 @@ in {
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh http routing;
+        };
+      };
+
+      storage-0 = {
+        instanceType = "t3a.small";
+        privateIP = "172.16.0.50";
+        subnet = cluster.vpc.subnets.core-1;
+
+        modules = [ (bitte + /profiles/glusterfs-storage.nix) ];
+
+        securityGroupRules = {
+          inherit (securityGroupRules) internal internet ssh;
+        };
+      };
+
+      storage-1 = {
+        instanceType = "t3a.small";
+        privateIP = "172.16.1.50";
+        subnet = cluster.vpc.subnets.core-2;
+
+        modules = [ (bitte + /profiles/glusterfs-storage.nix) ];
+
+        securityGroupRules = {
+          inherit (securityGroupRules) internal internet ssh;
+        };
+      };
+
+      storage-2 = {
+        instanceType = "t3a.small";
+        privateIP = "172.16.2.50";
+        subnet = cluster.vpc.subnets.core-3;
+
+        modules = [ (bitte + /profiles/glusterfs-storage.nix) ];
+
+        securityGroupRules = {
+          inherit (securityGroupRules) internal internet ssh;
         };
       };
     };
