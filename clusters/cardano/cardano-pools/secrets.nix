@@ -1,1 +1,1 @@
-{ config, ... }: { secrets.encryptedRoot = ../../../encrypted; }
+{ config, self, ... }: { secrets.encryptedRoot = "${self}/encrypted"; }
