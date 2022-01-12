@@ -3,7 +3,6 @@
 buildGoModule rec {
   pname = "nomad-driver-nspawn";
   version = "0.6.0";
-  goPackagePath = "github.com/JanMa/${pname}";
   src = fetchFromGitHub {
     owner = "JanMa";
     repo = "nomad-driver-nspawn";

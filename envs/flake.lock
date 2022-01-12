@@ -1,0 +1,44 @@
+{
+  "nodes": {
+    "data-merge": {
+      "inputs": {
+        "nixlib": "nixlib"
+      },
+      "locked": {
+        "lastModified": 1635967744,
+        "narHash": "sha256-01065dNad3BIepNzrpYuYInxq/ynqtGMSsIiNqjND7E=",
+        "owner": "divnix",
+        "repo": "data-merge",
+        "rev": "68bd71f980f75cf73bc5071982eddfe6bc089768",
+        "type": "github"
+      },
+      "original": {
+        "owner": "divnix",
+        "repo": "data-merge",
+        "type": "github"
+      }
+    },
+    "nixlib": {
+      "locked": {
+        "lastModified": 1635640270,
+        "narHash": "sha256-7VRyUAgl/Aqh70fkx904zciroUnz1cIUu0MqMaVu1pU=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "21595a2653dd84bbde02dadb0847a1bbb98a2663",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "data-merge": "data-merge"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

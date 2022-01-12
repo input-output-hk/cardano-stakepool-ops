@@ -1,58 +1,97 @@
 {
-  description = "Bitte for Cardano Pools";
+  description = "Bitte for Cardano Stakepools";
 
   inputs = {
+    utils.url = "github:numtide/flake-utils";
+
+    # --- Bitte Stack ----------------------------------------------
     bitte.url = "github:input-output-hk/bitte";
     # bitte.url = "path:/home/jlotoski/work/iohk/bitte-wt/bitte";
     # bitte.url = "path:/home/manveru/github/input-output-hk/bitte";
-    ops-lib.url = "github:input-output-hk/ops-lib/zfs-image?dir=zfs";
     nixpkgs.follows = "bitte/nixpkgs";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    terranix.follows = "bitte/terranix";
-    utils.follows = "bitte/utils";
+    # --------------------------------------------------------------
 
-    # Node 1.26.1 tag (no release branch available)
-    cardano-node.url =
-      "github:input-output-hk/cardano-node?rev=62f38470098fc65e7de5a4b91e21e36ac30799f3";
+    # --- Makes Stack ----------------------------------------------
+    makes.url = "github:input-output-hk/makes";
+    # --------------------------------------------------------------
+
+    # Inputs
+    cardano-node = {
+      url = "github:input-output-hk/cardano-node/1.33.0";
+      inputs.customConfig.url = "path:./pkgs/node-custom-config";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, utils, bitte, ... }@inputs:
-    let
-      opsOverlay = import ./overlay.nix { inherit inputs self; };
-      bitteOverlay = bitte.overlay;
+  outputs = { self, nixpkgs, nixpkgs-unstable, bitte, cardano-node, makes, utils, ... }@inputs:
 
-      hashiStack = bitte.mkHashiStack {
-        flake = self;
-        rootDir = ./.;
-        inherit pkgs;
-        domain = "pools.dev.cardano.org";
-      };
+    (makes.lib.flakes.evaluate { inherit inputs; system = "x86_64-linux"; })
 
-      pkgs = import nixpkgs {
-        system = "x86_64-linux";
-        overlays = [
-          (final: prev: { inherit (hashiStack) clusters dockerImages; })
-          bitteOverlay
-          opsOverlay
-        ];
-      };
+    //
 
-      nixosConfigurations = hashiStack.nixosConfigurations // {
-        nspawn-test = import ./nspawn/test.nix { inherit nixpkgs; };
-      };
-    in {
-      inherit self nixosConfigurations;
-      inherit (hashiStack) nomadJobs dockerImages consulTemplates;
+    (
+      let
+        overlays = [ pkgsOverlay entrypointsOverlay bitte.overlay ];
 
-      clusters.x86_64-linux = hashiStack.clusters;
-      legacyPackages.x86_64-linux = pkgs;
-      devShell.x86_64-linux = pkgs.devShell;
-      hydraJobs.x86_64-linux = {
-        inherit (pkgs)
-          devShellPath bitte nixFlakes sops terraform-with-plugins cfssl consul
-          nomad vault-bin cue grafana haproxy grafana-loki victoriametrics
-          nomad-driver-nspawn devbox-entrypoint cardano-cli;
-      } // (pkgs.lib.mapAttrs (_: v: v.config.system.build.toplevel)
-        nixosConfigurations);
-    };
+        pkgsOverlay = final: prev: {
+          inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system}.dockerTools)
+            buildImage buildLayeredImage pullImage;
+          inherit (inputs.nixpkgs-unstable.legacyPackages.${final.system})
+            traefik complete-alias;
+        };
+
+        entrypointsOverlay = final: prev: {
+          inherit (inputs.cardano-node.packages.${final.system})
+            "testnet/node"
+            "mainnet/node"
+            "testnet/submit-api"
+            "mainnet/submit-api"
+            ;
+          stakepool-entrypoint = final.callPackage ./entrypoints/stakepool-entrypoint.nix {
+          };
+        };
+
+        pkgsForSystem = system: import nixpkgs {
+          inherit overlays system;
+          config.allowUnfree = true;
+        };
+
+        bitteStack = bitte.lib.mkBitteStack {
+          inherit self inputs;
+          pkgs = pkgsForSystem "x86_64-linux";
+          domain = "cardano-pools.iohk.io";
+          docker = ./docker;
+          clusters = ./clusters;
+          deploySshKey = "./secrets/ssh-stakepools-testnet";
+          envs = (import ./envs/default.nix).envs self.rev self.dockerImages;
+          hydrateModule = (import ./envs/default.nix).bitteHydrateModule;
+        };
+
+      in
+      utils.lib.eachSystem [ "x86_64-linux" ]
+        (system: rec {
+
+          legacyPackages = pkgsForSystem system;
+
+          devShell = legacyPackages.bitteShell rec {
+            inherit self;
+            profile = "cardano-pools";
+            domain = "cardano-pools.iohk.io";
+            cluster = "cardano-pools";
+            namespace = "cardano-testnet";
+            region = "eu-central-1";
+            extraPackages = [ ];
+            # nixConfig = ''
+            #   extra-substituters = https://hydra.${domain}
+            #   extra-trusted-public-keys = ${nixpkgs.lib.fileContents ./encrypted/nix-public-key-file}
+            # '';
+          };
+
+        }) // {
+        # eta reduce not possibe since flake check validates for "final" / "prev"
+        overlay = final: prev: nixpkgs.lib.composeManyExtensions overlays final prev;
+      } // bitteStack
+    )
+
+  ; # outputs
 }
