@@ -47,8 +47,7 @@
             "testnet/submit-api"
             "mainnet/submit-api"
             ;
-          stakepool-entrypoint = final.callPackage ./entrypoints/stakepool-entrypoint.nix {
-          };
+          stakepool-entrypoint = final.callPackage ./entrypoints/stakepool-entrypoint.nix { };
         };
 
         pkgsForSystem = system: import nixpkgs {
