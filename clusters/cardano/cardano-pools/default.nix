@@ -1,8 +1,10 @@
-{ self, lib, pkgs, config, ... }:
+{ self, lib, pkgs, config, terralib, ... }:
 let
   inherit (self.inputs) bitte;
   inherit (config) cluster;
-  inherit (import ./security-group-rules.nix { inherit config pkgs lib; })
+  inherit (import ./security-group-rules.nix {
+    inherit config pkgs lib terralib;
+  })
     securityGroupRules;
 in {
   imports = [ ./iam.nix ];
@@ -10,22 +12,6 @@ in {
   services.consul.policies.developer.servicePrefix."cardano" = {
     policy = "write";
     intentions = "write";
-  };
-
-  services.nomad.policies.admin.namespace."cardano-*".policy = "write";
-  services.nomad.policies.developer = {
-    hostVolume."cardano-*".policy = "write";
-    namespace."cardano-*" = {
-      capabilities = [
-        "submit-job"
-        "dispatch-job"
-        "read-logs"
-        "alloc-exec"
-        "alloc-node-exec"
-        "alloc-lifecycle"
-      ];
-      policy = "write";
-    };
   };
 
   services.nomad.namespaces = {
@@ -44,7 +30,7 @@ in {
 
     adminNames = [ "samuel.leathers" ];
     developerGithubNames = [ ];
-    developerGithubTeamNames = [ ];
+    developerGithubTeamNames = [ "devops" ];
     domain = "cardano-pools.iohk.io";
     kms =
       "arn:aws:kms:eu-central-1:882803439528:key/d78428ce-40ec-439c-83ec-a544dc16e5c0";
@@ -56,14 +42,21 @@ in {
 
     autoscalingGroups = let
       defaultModules = [
-        (bitte + /profiles/client.nix)
-        self.inputs.ops-lib.nixosModules.zfs-runtime
+        bitte.profiles.client
         "${self.inputs.nixpkgs}/nixos/modules/profiles/headless.nix"
         "${self.inputs.nixpkgs}/nixos/modules/virtualisation/ec2-data.nix"
         ./secrets.nix
         ./docker-auth.nix
         ./host-volumes.nix
         ./nspawn.nix
+        {
+          boot.kernelModules = [ "softdog" ];
+          #
+          # Watchdog events will be logged but not force the nomad client node to restart
+          # Comment this line out to allow forced watchdog restarts
+          # Patroni HA Postgres jobs will utilize watchdog and log additional info if it's available
+          boot.extraModprobeConfig = "options softdog soft_noboot=1";
+        }
       ];
 
       withNamespace = name:
@@ -181,11 +174,8 @@ in {
         subnet = cluster.vpc.subnets.core-1;
         volumeSize = 100;
 
-        modules = [
-          (bitte + /profiles/core.nix)
-          (bitte + /profiles/bootstrapper.nix)
-          ./secrets.nix
-        ];
+        modules =
+          [ bitte.profiles.core bitte.profiles.bootstrapper ./secrets.nix ];
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
@@ -214,7 +204,7 @@ in {
         subnet = cluster.vpc.subnets.core-2;
         volumeSize = 100;
 
-        modules = [ (bitte + /profiles/core.nix) ./secrets.nix ];
+        modules = [ bitte.profiles.core ./secrets.nix ];
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
@@ -227,7 +217,7 @@ in {
         subnet = cluster.vpc.subnets.core-3;
         volumeSize = 100;
 
-        modules = [ (bitte + /profiles/core.nix) ./secrets.nix ];
+        modules = [ bitte.profiles.core ./secrets.nix ];
 
         securityGroupRules = {
           inherit (securityGroupRules) internet internal ssh;
@@ -247,7 +237,8 @@ in {
           "vault.${cluster.domain}"
         ];
 
-        modules = [ ./monitoring-server.nix ];
+        modules =
+          [ bitte.profiles.monitoring ./secrets.nix ./monitoring-server.nix ];
 
         securityGroupRules = {
           inherit (securityGroupRules)
@@ -262,10 +253,10 @@ in {
         volumeSize = 30;
         route53.domains = [ "*.${cluster.domain}" ];
 
-        modules = [ ./routing.nix ];
+        modules = [ bitte.profiles.routing ./secrets.nix ./routing.nix ];
 
         securityGroupRules = {
-          inherit (securityGroupRules) internet internal ssh http routing;
+          inherit (securityGroupRules) internet internal ssh http https routing;
         };
       };
     };
